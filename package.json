@@ -1,0 +1,33 @@
+{
+  "name": "linuxvulcollect",
+  "version": "0.0.2",
+  "description": "collecting vulnerability from linux publisher websites",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/renlanchuke/linuxVulCollect.git"
+  },
+  "keywords": [
+    "spider",
+    "linux",
+    "vulnerability"
+  ],
+  "author": "renlanchuke",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/renlanchuke/linuxVulCollect/issues"
+  },
+  "homepage": "https://github.com/renlanchuke/linuxVulCollect#readme",
+
+  "dependencies": {
+    "cheerio": "^0.20.0",
+    "forever": "^0.15.1",
+    "json2csv": "^3.4.2",
+    "mysql": "^2.9.0",
+    "request": "^2.72.0",
+    "url": "^0.11.0"
+}
+}
