@@ -42,42 +42,31 @@ var getAll = function () {
             arrayValue.push(value);
             arrayText.push(trim(text));
         });
+
         //选取select有两个一样的，第一个option为空
         //从arra中选取1到length/2作为版本信息
         arrayValue = arrayValue.slice(1, arrayValue.length / 2);
         arrayText = arrayText.slice(1, arrayText.length / 2);
 
-        // for(var i =0; i<arrayText.length; i++){
-        //     logger.log(i);
-        //     logger.log(arrayText[i]);
-        // }
+        for(var i =0; i<arrayText.length; i++){
+            logger.log(i);
+            logger.log(arrayValue[i]);
+            logger.log(arrayText[i]);
+        }
 
+        var paras="12313";
 
-        getSingleVersionInfo(arrayValue[1], arrayText[1], 0);
-
-
-
-
-
-
-
-
-        // var cards = $('.tbb');
-        // cards.each(function (i) {
-        //     articleID = articleID + 1;
-        //     var url = $(this).find('a').attr('href')
-        //     articleURLArray.push({ id: articleID, url: url, download: false });
-
-        // }), mongo.insertMany(paperCollection, articleURLArray, (err, result) => {
-        //     if (err) throw err;
-        //     logger.log('成功插入' + result.insertedCount + '条数据');
-        // });
-
-        // if (pageCount < maxPage) {
-        //     pageCount++;
-        //     formData2.page = pageCount.toString();
-        //     getArticlesUrl(pageCount);
-        // }
+        for(var l=0; l<arrayValue.length;l++){
+            
+            (function(iiii){
+                setTimeout(function() {
+                   
+                    getSingleVersionInfo(arrayValue[iiii], arrayText[iiii],0);
+                }, 1000*60*3*iiii);
+            }(l));
+           
+        }
+ 
     })
 
     // fs.readFile('./testFile.html', 'UTF-8', function (err, data) {
@@ -114,7 +103,7 @@ var getSingleVersionInfo = function (verName, verNum, pageNum) {
                 text=trim(text);
                 var href=$(this).attr('href')
                 sqls.push("INSERT IGNORE INTO ubuntu (version_num, version_name,vulnerability_num,vulnerability_url) \
-                VALUES ('" + verNum + "'," + verName + "," + text + ",'" + href + "')");
+                VALUES ('" + verNum + "','" + verName + "','" + text + "','" + href + "')");
             })
         })
 
@@ -122,12 +111,8 @@ var getSingleVersionInfo = function (verName, verNum, pageNum) {
 
         mysql.mutliquery(sqls, function (err) {
             if (err) {
-                callback(err);
-                return;
+                throw err;
             }
-            callback(null, newusers.length);
-            sqls = null;
-            newusers = null;
         });
 
         if (hasNextPage) {
