@@ -6,28 +6,8 @@ var logger = require('./logger');
 var config = require('./config')
 var mysql = require("./mysql")
 var fs = require('fs');
-var url = config.ubuntu_url;
-//第一次搜索的表单
 
-
-var page = 1;
-var maxPage = 28;
-var articleID = 0;
-//分页链接的表单数据
-
-
-//mongodb数据库collection，存放抓取的papers
-var paperCollection
-
-// exports.getArticles = function (collection) {
-//     paperCollection = collection;
-//     mongo.init((err) => {
-//         if (err) throw err;
-//         getArticlesUrl(1);
-//     });
-// }
-
-
+var baseUrl = config.CVEURL;
 exports.getVersionList = function (url, callback) {
 
     common.get(url, null, function (err, data) {
@@ -35,24 +15,13 @@ exports.getVersionList = function (url, callback) {
 
         var arrayVersionURL = new Array();
         var $ = cheerio.load(data, { decodeEntities: false });
-        TB = cheerio.load($.html("table .listtable"));
-        cheerioTableparser(TB);
-        var arr2 = TB("table").parsetable()
 
-        for (var i = 1; i < arr2[0].length; i++) {
-            var versionUrlObj = {
-                version: trim(arr2[0][i]),
-                edition:trim(arr2[3][i]),
-                url: getUrl(arr2[5][i])
-            }
-            arrayVersionURL.push(versionUrlObj);
-        }
+        var pageUrlList = $("#pagingb").find("a");
+        getList(0, pageUrlList,arrayVersionURL,function(arrayVersionURL){
+            callback(arrayVersionURL);
+        });
 
-        // for(var j=0; j <arrayVersionURL.length; j++){
-        //     logger.log(arrayVersionURL[j].version+" "+arrayVersionURL[j].url);
-        // }
 
-        callback(arrayVersionURL);
 
     })
 
@@ -67,10 +36,44 @@ exports.getVersionList = function (url, callback) {
 
 }
 
-exports.getSingleVersionInfo = function (baseURL, url, version_num,edition, dbTable) {
-    logger.log(url);
+var getList = function (count, urlList, arrayVersionURL, callback) {
 
-    var url_singleVersion = baseURL + url;
+    var pageHref = urlList[count].attribs.href;
+    common.get(baseUrl + pageHref, null, function (err, data) {
+        var $_page = cheerio.load(data);
+
+        TB = cheerio.load($_page.html("table .listtable"));
+        cheerioTableparser(TB);
+        var arr2 = TB("table").parsetable()
+
+        for (var i = 1; i < arr2[0].length; i++) {
+            var versionUrlObj = {
+                version: trim(arr2[0][i]),
+                edition: trim(arr2[3][i]),
+                url: getUrl(arr2[5][i])
+            }
+
+            //去掉空版本号
+            if(/(\w)|(\d)/.test(versionUrlObj.version)){
+                arrayVersionURL.push(versionUrlObj);
+            }
+            
+        }
+
+        if (count < urlList.length-1) {
+            
+            getList(count + 1, urlList, arrayVersionURL, callback);
+        } else {
+            callback(arrayVersionURL);
+        }
+    });
+}
+
+
+exports.getSingleVersionInfo = function (url, version_num, edition, dbTable) {
+    //logger.log(url);
+
+    var url_singleVersion = baseUrl + url;
 
     common.get(url_singleVersion, null, function (err, data) {
         if (err) throw err;
@@ -81,9 +84,9 @@ exports.getSingleVersionInfo = function (baseURL, url, version_num,edition, dbTa
             var sqls = new Array()
             var pageHref = $(this).attr('href');
 
-            logger.log(pageHref);
+            //logger.log(pageHref);
 
-            common.get(baseURL + pageHref, null, function (err, data) {
+            common.get(baseUrl + pageHref, null, function (err, data) {
                 var $_page = cheerio.load(data);
 
                 TB = cheerio.load($_page.html("#vulnslisttable"));
@@ -96,7 +99,7 @@ exports.getSingleVersionInfo = function (baseURL, url, version_num,edition, dbTa
 
 
                     var vulnerability_num = trim($_tem("a").text());
-                    var vulnerability_url = baseURL + $_tem("a").attr("href")
+                    var vulnerability_url = baseUrl + $_tem("a").attr("href")
                     var publish_date = trim(arrTB[5][i]);
                     var publish_date = trim(arrTB[6][i]);
                     var cvss_score = trim($_temScore("div").text());
@@ -104,10 +107,6 @@ exports.getSingleVersionInfo = function (baseURL, url, version_num,edition, dbTa
 
                     sqls.push("INSERT IGNORE INTO " + dbTable + " (version_num,vulnerability_num,vulnerability_url,edition,publish_date,update_date,cvss_score)" +
                         " VALUES ('" + version_num + "','" + vulnerability_num + "','" + vulnerability_url + "','" + edition + "','" + publish_date + "','" + publish_date + "','" + cvss_score + "')");
-                }
-
-                for (var ind = 0; ind < sqls.length; ind++) {
-                    logger.log(sqls[ind]);
                 }
 
                 mysql.mutliquery(sqls, function (err) {
